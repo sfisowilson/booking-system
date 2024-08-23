@@ -43,6 +43,7 @@ new class extends Component
 
         if ($this->role === 'professional') {
             $validated['location'] = ['required', 'string', 'max:255'];
+            $validated['profession'] = ['required', 'string', 'max:255'];
         }
 
         $user->fill($validated);
@@ -52,9 +53,18 @@ new class extends Component
         }
 
         if ($this->role === 'professional') {
-            Professional::where('user_id', $user->id)->update([
+            $professional = Professional::where('user_id', $user->id)->update([
                 'location' => $this->location,
+                'profession' => $this->profession,
             ]);
+
+            if (!$professional) {
+                Professional::create([
+                    'user_id' => $user->id,
+                    'location' => $this->location,
+                    'profession' => $this->profession,
+                ]);
+            }
         }
 
         $user->save();
@@ -143,7 +153,7 @@ new class extends Component
         @if ($role === 'professional')
             <div class="mt-4">
                 <x-input-label for="profession" :value="__('Profession')" />
-                <x-text-input wire:model="profession" id="profession" class="block mt-1 w-full" type="text" name="profession" disabled />
+                <x-text-input wire:model="profession" id="profession" class="block mt-1 w-full" type="text" name="profession"  />
             </div>
         @endif
 
