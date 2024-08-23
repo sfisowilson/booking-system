@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Professional;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,9 @@ new class extends Component
 {
     public string $name = '';
     public string $email = '';
+    public string $role = '';
+    public string $profession = '';
+    public string $location = '';
 
     /**
      * Mount the component.
@@ -18,6 +22,10 @@ new class extends Component
     {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
+        $this->role = Auth::user()->role;
+        $this->profession = Auth::user()->professional->profession ?? '';
+        $this->location = Auth::user()->professional->location ?? '';
+
     }
 
     /**
@@ -30,12 +38,23 @@ new class extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'role' => ['required', 'string', 'in:professional,client'],
         ]);
+
+        if ($this->role === 'professional') {
+            $validated['location'] = ['required', 'string', 'max:255'];
+        }
 
         $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
+        }
+
+        if ($this->role === 'professional') {
+            Professional::where('user_id', $user->id)->update([
+                'location' => $this->location,
+            ]);
         }
 
         $user->save();
@@ -69,7 +88,7 @@ new class extends Component
         </h2>
 
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __("Update your account's profile information and email address.") }}
+            {{ __("Update your account's profile information and email address.") }} {{$location}}
         </p>
     </header>
 
@@ -103,6 +122,30 @@ new class extends Component
                 </div>
             @endif
         </div>
+
+        <!-- Role Selection -->
+        <div class="mt-4">
+            <x-input-label for="role" :value="__('Role')" />
+
+            <x-select-input :selectItems="['professional', 'client']"
+                wire:model="role" id="role" name="role" class="block mt-1 w-full" disabled/>
+        </div>
+        <!-- Location (visible if role is professional) -->
+        @if ($role === 'professional')
+            <div class="mt-4">
+                <x-input-label for="location" :value="__('Location')" />
+                <x-text-input wire:model="location" id="location" class="block mt-1 w-full" type="text" name="location" required />
+                <x-input-error :messages="$errors->get('location')" class="mt-2" />
+            </div>
+        @endif
+
+        <!-- Profession (visible if role is professional) -->
+        @if ($role === 'professional')
+            <div class="mt-4">
+                <x-input-label for="profession" :value="__('Profession')" />
+                <x-text-input wire:model="profession" id="profession" class="block mt-1 w-full" type="text" name="profession" disabled />
+            </div>
+        @endif
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>

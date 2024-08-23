@@ -45,4 +45,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the user's profession
+     */
+    public function professional()
+    {
+        return $this->hasOne(Professional::class);
+    }
 }
